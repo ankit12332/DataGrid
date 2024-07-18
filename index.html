@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced DataGrid with Drag-and-Drop Column Hiding</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f2f5;
+        color: #000;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .custom-datagrid-container {
+        border-bottom: rgb(219, 218, 218) 0.01px solid;
+        min-height: 388px;
+      }
+
+      .datagrid-container {
+        width: 90%;
+        margin: 20px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        overflow-x: auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+      }
+
+      .datagrid {
+        max-height: 388px;
+        overflow-y: auto;
+        position: relative;
+      }
+
+      table {
+        width: 100%;
+        max-width: 100%;
+        border-collapse: collapse;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      th,
+      td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        position: relative;
+      }
+
+      th {
+        background-color: #f9fafb;
+        cursor: pointer;
+        user-select: none;
+        color: #000;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      tbody tr:hover {
+        background-color: #f1f3f5;
+      }
+
+      .sort-asc::after,
+      .sort-desc::after {
+        content: "";
+        display: inline-block;
+        width: 0;
+        height: 0;
+        margin-left: 5px;
+        vertical-align: middle;
+        border-style: solid;
+      }
+
+      .sort-asc::after {
+        border-width: 0 4px 6px 4px;
+        border-color: transparent transparent #007bff transparent;
+      }
+
+      .sort-desc::after {
+        border-width: 6px 4px 0 4px;
+        border-color: #007bff transparent transparent transparent;
+      }
+
+      .pagination {
+        margin: 10px 0;
+        display: flex;
+        justify-content: center;
+        list-style: none;
+        padding: 0;
+      }
+
+      .pagination li {
+        margin: 0 5px;
+        cursor: pointer;
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        transition: color 0.3s;
+      }
+
+      .pagination li.active,
+      .pagination li:hover {
+        color: #007bff;
+        border: 1px solid #007bff;
+      }
+
+      .search-container {
+        margin: 10px;
+        width: calc(100% - 20px);
+      }
+
+      .search-container input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-sizing: border-box;
+        background-color: #fff;
+        color: #000;
+      }
+
+      .pagination-controls {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        margin: 10px 20px;
+      }
+
+      .rows-per-page {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+      }
+
+      .rows-per-page select {
+        margin-left: 10px;
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        background-color: #fff;
+        color: #000;
+      }
+
+      #pagination-info {
+        font-size: 14px;
+        color: #000;
+        margin-right: 20px;
+        width: 150px;
+        text-align: right;
+      }
+
+      .export-container {
+        display: flex;
+        justify-content: flex-end;
+        margin: 10px 20px;
+      }
+
+      .export-button {
+        margin-left: 10px;
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      .export-button:hover {
+        background-color: #0056b3;
+      }
+
+      .hidden-columns-container {
+        display: none;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        margin: 10px 10px;
+        min-height: 15px;
+        padding: 5px;
+      }
+
+      .hidden-column {
+        background-color: #f9f9f9;
+        font-size: 13px;
+        padding: 3px 15px;
+        margin: 5px;
+        border: 1px solid #ddd;
+        border-radius: 30px;
+        cursor: pointer;
+        color: #58595b;
+        display: flex;
+        align-items: center;
+      }
+
+      .hidden-column .remove {
+        margin-left: 5px;
+        color: red;
+        cursor: pointer;
+      }
+
+      .pagination-container {
+        display: flex;
+        align-items: center;
+      }
+
+      .pagination-container button,
+      .pagination-container span {
+        margin: 0 5px;
+        cursor: pointer;
+        padding: 5px 3px;
+        border: none;
+        background-color: transparent;
+      }
+
+      .pagination-container button:disabled,
+      .pagination-container button:disabled:hover {
+        color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .pagination-icon {
+        width: 20px;
+        height: 20px;
+        fill: #000;
+        vertical-align: middle;
+      }
+
+      .pagination-container button:disabled .pagination-icon,
+      .pagination-container button:disabled:hover .pagination-icon {
+        fill: #ccc;
+      }
+
+      .bold {
+        font-weight: bold;
+      }
+      .loading-indicator {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.5rem;
+        color: #007bff;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="datagrid-container">
+      <div class="hidden-columns-container" id="hidden-columns-container"></div>
+      <div class="search-container" id="search-container">
+        <input type="text" id="search" placeholder="Search..." />
+      </div>
+      <div class="custom-datagrid-container">
+        <div id="datagrid-container" class="datagrid"></div>
+      </div>
+      <div id="loading-indicator" class="loading-indicator">Loading...</div>
+
+      <div class="pagination-controls">
+        <div class="rows-per-page">
+          <label for="rowsPerPage">Rows per page:</label>
+          <select id="rowsPerPage">
+            <option value="8">8</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+        <div id="pagination-info"></div>
+        <div class="pagination-container" id="pagination-container"></div>
+      </div>
+      <div class="export-container" id="export-container">
+        <button class="export-button" id="export-csv">Export CSV</button>
+        <button class="export-button" id="export-excel">Export Excel</button>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script>
+      const svgCache = {};
+
+      const preloadSVGs = async (svgUrls) => {
+        await Promise.all(
+          svgUrls.map(async (url) => {
+            const response = await fetch(url);
+            const svgText = await response.text();
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
+            const svgElement = svgDoc.querySelector("svg");
+            svgElement.classList.add("pagination-icon");
+            svgCache[url] = svgElement.outerHTML;
+          })
+        );
+      };
+
+      const getSVG = (url) => {
+        return svgCache[url];
+      };
+
+      const svgUrls = [
+        "public/firstPage.svg",
+        "public/left.svg",
+        "public/right.svg",
+        "public/lastPage.svg",
+      ];
+
+      const debounce = (fn, delay) => {
+        let timeoutId;
+        return (...args) => {
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => fn(...args), delay);
+        };
+      };
+
+      class DataGrid {
+        constructor(containerId, data, columns, options = {}) {
+          this.container = document.getElementById(containerId);
+          this.paginationContainer = document.getElementById(
+            "pagination-container"
+          );
+          this.paginationInfo = document.getElementById("pagination-info");
+          this.rowsPerPageSelector = document.getElementById("rowsPerPage");
+          this.searchContainer = document.getElementById("search-container");
+          this.exportContainer = document.getElementById("export-container");
+          this.hiddenColumnsContainer = document.getElementById(
+            "hidden-columns-container"
+          );
+
+          this.data = data;
+          this.filteredData = data;
+          this.columns = columns.map((col) => ({ ...col, visible: true }));
+
+          this.options = {
+            rowsPerPage: 10,
+            enableSearch: true,
+            enableSort: true,
+            enableExport: true,
+            enableDragDrop: true,
+            ...options,
+          };
+
+          this.currentPage = 1;
+          this.sortDirection = "asc";
+          this.sortColumn = null;
+
+          this.init();
+        }
+
+        async init() {
+          if (this.options.enableSearch) {
+            this.setupSearch();
+            this.searchContainer.style.display = "block";
+          } else {
+            this.searchContainer.style.display = "none";
+          }
+
+          if (this.options.enableExport) {
+            this.setupExport();
+            this.exportContainer.style.display = "flex";
+          } else {
+            this.exportContainer.style.display = "none";
+          }
+
+          this.setupRowsPerPage();
+          await this.render();
+
+          if (this.options.enableDragDrop) {
+            this.setupDragAndDrop();
+          }
+
+          this.renderHiddenColumns();
+        }
+
+        async render() {
+          requestAnimationFrame(async () => {
+            const fragment = document.createDocumentFragment();
+            this.container.innerHTML = "";
+            const table = document.createElement("table");
+            table.classList.add("datagrid");
+
+            const thead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+            this.columns.forEach((col, index) => {
+              if (col.visible) {
+                const th = document.createElement("th");
+                th.textContent = col.label;
+                th.dataset.column = col.field;
+                th.dataset.index = index;
+                if (this.options.enableDragDrop) {
+                  th.draggable = true;
+                }
+                th.style.width = col.width || "auto";
+                if (this.options.enableSort) {
+                  th.addEventListener("click", () => this.sortData(col.field));
+                }
+                headerRow.appendChild(th);
+              }
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+            const pageData = this.getPageData();
+            pageData.forEach((item) => {
+              const row = document.createElement("tr");
+              this.columns.forEach((col) => {
+                if (col.visible) {
+                  const td = document.createElement("td");
+                  td.textContent = item[col.field];
+                  row.appendChild(td);
+                }
+              });
+              tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+
+            fragment.appendChild(table);
+            this.container.appendChild(fragment);
+            await this.renderPagination();
+            this.updatePaginationInfo();
+            this.renderHiddenColumns();
+          });
+        }
+
+        sortData(column) {
+          if (this.sortColumn === column) {
+            this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
+          } else {
+            this.sortDirection = "asc";
+          }
+          this.sortColumn = column;
+
+          this.filteredData.sort((a, b) => {
+            if (a[column] < b[column])
+              return this.sortDirection === "asc" ? -1 : 1;
+            if (a[column] > b[column])
+              return this.sortDirection === "asc" ? 1 : -1;
+            return 0;
+          });
+
+          this.render();
+          this.updateSortIndicators();
+        }
+
+        updateSortIndicators() {
+          const headers = this.container.querySelectorAll("th");
+          headers.forEach((th) => {
+            th.classList.remove("sort-asc", "sort-desc");
+            if (th.dataset.column === this.sortColumn) {
+              th.classList.add(
+                this.sortDirection === "asc" ? "sort-asc" : "sort-desc"
+              );
+            }
+          });
+        }
+
+        getPageData() {
+          const start = (this.currentPage - 1) * this.options.rowsPerPage;
+          const end = start + this.options.rowsPerPage;
+          return this.filteredData.slice(start, end);
+        }
+
+        async renderPagination() {
+          requestAnimationFrame(() => {
+            this.paginationContainer.innerHTML = "";
+            const pageCount = Math.ceil(
+              this.filteredData.length / this.options.rowsPerPage
+            );
+
+            const firstPageBtn = document.createElement("button");
+            firstPageBtn.innerHTML = getSVG("public/firstPage.svg");
+            firstPageBtn.disabled = this.currentPage === 1;
+            firstPageBtn.addEventListener("click", () => {
+              this.currentPage = 1;
+              this.render();
+            });
+            this.paginationContainer.appendChild(firstPageBtn);
+
+            const prevPageBtn = document.createElement("button");
+            prevPageBtn.innerHTML = getSVG("public/left.svg");
+            prevPageBtn.disabled = this.currentPage === 1;
+            prevPageBtn.addEventListener("click", () => {
+              if (this.currentPage > 1) {
+                this.currentPage--;
+                this.render();
+              }
+            });
+            this.paginationContainer.appendChild(prevPageBtn);
+
+            const pageInfo = document.createElement("span");
+            pageInfo.innerHTML = `Page <span class="bold">${this.currentPage}</span> of <span class="bold">${pageCount}</span>`;
+            this.paginationContainer.appendChild(pageInfo);
+
+            const nextPageBtn = document.createElement("button");
+            nextPageBtn.innerHTML = getSVG("public/right.svg");
+            nextPageBtn.disabled = this.currentPage === pageCount;
+            nextPageBtn.addEventListener("click", () => {
+              if (this.currentPage < pageCount) {
+                this.currentPage++;
+                this.render();
+              }
+            });
+            this.paginationContainer.appendChild(nextPageBtn);
+
+            const lastPageBtn = document.createElement("button");
+            lastPageBtn.innerHTML = getSVG("public/lastPage.svg");
+            lastPageBtn.disabled = this.currentPage === pageCount;
+            lastPageBtn.addEventListener("click", () => {
+              this.currentPage = pageCount;
+              this.render();
+            });
+            this.paginationContainer.appendChild(lastPageBtn);
+
+            // Update button colors based on enabled/disabled state
+            this.updateButtonColors();
+          });
+        }
+
+        updateButtonColors() {
+          const buttons = this.paginationContainer.querySelectorAll("button");
+          buttons.forEach((button) => {
+            const svgIcon = button.querySelector(".pagination-icon");
+            if (button.disabled) {
+              svgIcon.style.fill = "#ccc";
+            } else {
+              svgIcon.style.fill = "#000";
+            }
+          });
+        }
+
+        updatePaginationInfo() {
+          const start = (this.currentPage - 1) * this.options.rowsPerPage + 1;
+          const end = Math.min(
+            start + this.options.rowsPerPage - 1,
+            this.filteredData.length
+          );
+          this.paginationInfo.innerHTML = `<span class="bold">${start}</span> to <span class="bold">${end}</span> of <span class="bold">${this.filteredData.length}</span>`;
+        }
+
+        setupSearch() {
+          const searchInput = document.getElementById("search");
+          searchInput.addEventListener(
+            "input",
+            debounce((e) => {
+              const query = e.target.value.toLowerCase();
+              this.filteredData = this.data.filter((item) => {
+                return this.columns.some((col) => {
+                  return item[col.field]
+                    .toString()
+                    .toLowerCase()
+                    .includes(query);
+                });
+              });
+              this.currentPage = 1;
+              this.render();
+            }, 300)
+          );
+        }
+
+        setupRowsPerPage() {
+          this.rowsPerPageSelector.value = this.options.rowsPerPage;
+          this.rowsPerPageSelector.addEventListener("change", (e) => {
+            this.options.rowsPerPage = parseInt(e.target.value);
+            this.currentPage = 1;
+            this.render();
+          });
+        }
+
+        setupExport() {
+          document
+            .getElementById("export-csv")
+            .addEventListener("click", () => this.exportCSV());
+          document
+            .getElementById("export-excel")
+            .addEventListener("click", () => this.exportExcel());
+        }
+
+        exportCSV() {
+          const visibleColumns = this.columns.filter((col) => col.visible);
+          const rows = [visibleColumns.map((col) => col.label)];
+          this.filteredData.forEach((item) => {
+            const row = visibleColumns.map((col) => item[col.field]);
+            rows.push(row);
+          });
+
+          let csvContent =
+            "data:text/csv;charset=utf-8," +
+            rows.map((e) => e.join(",")).join("\n");
+
+          const encodedUri = encodeURI(csvContent);
+          const link = document.createElement("a");
+          link.setAttribute("href", encodedUri);
+          link.setAttribute("download", "data.csv");
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
+        exportExcel() {
+          const visibleColumns = this.columns.filter((col) => col.visible);
+          const rows = [visibleColumns.map((col) => col.label)];
+          this.filteredData.forEach((item) => {
+            const row = visibleColumns.map((col) => item[col.field]);
+            rows.push(row);
+          });
+
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Data");
+          XLSX.writeFile(wb, "data.xlsx");
+        }
+
+        setupDragAndDrop() {
+          this.container.addEventListener("dragstart", (e) => {
+            if (e.target.tagName === "TH") {
+              e.dataTransfer.setData("text/plain", e.target.dataset.index);
+            }
+          });
+
+          document.body.addEventListener("dragover", (e) => {
+            e.preventDefault();
+          });
+
+          document.body.addEventListener("drop", (e) => {
+            e.preventDefault();
+            const index = e.dataTransfer.getData("text/plain");
+            if (!this.container.contains(e.target)) {
+              this.columns[index].visible = false;
+              this.render();
+              this.hiddenColumnsContainer.style.display = "flex";
+            }
+          });
+
+          this.hiddenColumnsContainer.addEventListener("dragstart", (e) => {
+            if (e.target.classList.contains("hidden-column")) {
+              e.dataTransfer.setData("text/plain", e.target.dataset.index);
+            }
+          });
+
+          this.container.addEventListener("dragover", (e) => {
+            e.preventDefault();
+          });
+
+          this.container.addEventListener("drop", (e) => {
+            e.preventDefault();
+            const index = e.dataTransfer.getData("text/plain");
+            this.columns[index].visible = true;
+            this.render();
+          });
+        }
+
+        renderHiddenColumns() {
+          this.hiddenColumnsContainer.innerHTML = "";
+          let hasHiddenColumns = false;
+          const fragment = document.createDocumentFragment();
+          this.columns.forEach((col, index) => {
+            if (!col.visible) {
+              hasHiddenColumns = true;
+              const hiddenCol = document.createElement("div");
+              hiddenCol.classList.add("hidden-column");
+              hiddenCol.textContent = col.label;
+              hiddenCol.dataset.index = index;
+              hiddenCol.draggable = true;
+
+              const removeIcon = document.createElement("span");
+              removeIcon.textContent = "✖";
+              removeIcon.classList.add("remove");
+              removeIcon.addEventListener("click", () => {
+                this.columns[index].visible = true;
+                this.render();
+              });
+
+              hiddenCol.appendChild(removeIcon);
+              fragment.appendChild(hiddenCol);
+            }
+          });
+          this.hiddenColumnsContainer.appendChild(fragment);
+
+          if (!hasHiddenColumns) {
+            this.hiddenColumnsContainer.style.display = "none";
+          } else {
+            this.hiddenColumnsContainer.style.display = "flex";
+          }
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        await preloadSVGs(svgUrls);
+
+        const data = [
+          { name: "John Doe", age: 28, occupation: "Software Engineer" },
+          { name: "Jane Smith", age: 34, occupation: "Graphic Designer" },
+          { name: "Sam Green", age: 22, occupation: "Product Manager" },
+          { name: "Alice Johnson", age: 30, occupation: "UX Designer" },
+          { name: "Michael Brown", age: 27, occupation: "Data Scientist" },
+          { name: "Emily Davis", age: 35, occupation: "Marketing Specialist" },
+          { name: "David Wilson", age: 41, occupation: "Sales Manager" },
+          { name: "Laura Moore", age: 29, occupation: "HR Specialist" },
+          { name: "James Taylor", age: 23, occupation: "Intern" },
+          { name: "Olivia Thomas", age: 38, occupation: "Business Analyst" },
+        ];
+
+        const columns = [
+          { label: "Name", field: "name", width: "300px" },
+          { label: "Age", field: "age", width: "100px" },
+          { label: "Occupation", field: "occupation", width: "250px" },
+        ];
+
+        new DataGrid("datagrid-container", data, columns, {
+          rowsPerPage: 8,
+          enableSearch: true,
+          enableSort: true,
+          enableExport: true,
+          enableDragDrop: true,
+        });
+      });
+    </script>
+  </body>
+</html>
