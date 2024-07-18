@@ -33,7 +33,7 @@
       }
 
       .datagrid {
-        max-height: 388px;
+        max-height: 400px;
         overflow-y: auto;
         position: relative;
       }
@@ -400,6 +400,9 @@
                 th.dataset.index = index;
                 if (this.options.enableDragDrop) {
                   th.draggable = true;
+                  th.addEventListener("dragstart", this.onDragStart.bind(this));
+                  th.addEventListener("dragover", this.onDragOver.bind(this));
+                  th.addEventListener("drop", this.onDrop.bind(this));
                 }
                 th.style.width = col.width || "auto";
                 if (this.options.enableSort) {
@@ -432,6 +435,25 @@
             this.updatePaginationInfo();
             this.renderHiddenColumns();
           });
+        }
+
+        onDragStart(e) {
+          e.dataTransfer.setData("text/plain", e.target.dataset.index);
+        }
+
+        onDragOver(e) {
+          e.preventDefault();
+        }
+
+        onDrop(e) {
+          e.preventDefault();
+          const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+          const toIndex = parseInt(e.target.dataset.index, 10);
+          if (fromIndex !== toIndex) {
+            const fromCol = this.columns.splice(fromIndex, 1)[0];
+            this.columns.splice(toIndex, 0, fromCol);
+            this.render();
+          }
         }
 
         sortData(column) {
