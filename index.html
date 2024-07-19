@@ -245,16 +245,6 @@
       .bold {
         font-weight: bold;
       }
-      .loading-indicator {
-        display: none;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 1.5rem;
-        color: #007bff;
-        font-weight: bold;
-      }
     </style>
   </head>
 
@@ -267,7 +257,6 @@
       <div class="custom-datagrid-container">
         <div id="datagrid-container" class="datagrid"></div>
       </div>
-      <div id="loading-indicator" class="loading-indicator">Loading...</div>
 
       <div class="pagination-controls">
         <div class="rows-per-page">
@@ -283,7 +272,6 @@
         <div class="pagination-container" id="pagination-container"></div>
       </div>
       <div class="export-container" id="export-container">
-        <button class="export-button" id="export-csv">Export CSV</button>
         <button class="export-button" id="export-excel">Export Excel</button>
       </div>
     </div>
@@ -603,32 +591,8 @@
 
         setupExport() {
           document
-            .getElementById("export-csv")
-            .addEventListener("click", () => this.exportCSV());
-          document
             .getElementById("export-excel")
             .addEventListener("click", () => this.exportExcel());
-        }
-
-        exportCSV() {
-          const visibleColumns = this.columns.filter((col) => col.visible);
-          const rows = [visibleColumns.map((col) => col.label)];
-          this.filteredData.forEach((item) => {
-            const row = visibleColumns.map((col) => item[col.field]);
-            rows.push(row);
-          });
-
-          let csvContent =
-            "data:text/csv;charset=utf-8," +
-            rows.map((e) => e.join(",")).join("\n");
-
-          const encodedUri = encodeURI(csvContent);
-          const link = document.createElement("a");
-          link.setAttribute("href", encodedUri);
-          link.setAttribute("download", "data.csv");
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
         }
 
         exportExcel() {
